@@ -1,6 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as ops from '../index.js';
 import fs from 'node:fs/promises';
+import { generateTmpFilePath } from '../utils/tmp.js';
 
 export const allTools: Tool[] = [
     {
@@ -127,13 +128,21 @@ export const allTools: Tool[] = [
     },
     {
         name: 'video_add_subtitles',
-        description: 'Embeds subtitles into a video.',
+        description: 'Embeds subtitles into a video as a soft (selectable) track or hard-burned into frames.',
         inputSchema: {
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                subtitles: { type: 'string', description: 'Path or URL to subtitle file, or array of subtitle objects' },
-                style: { type: 'object' }
+                subtitles: { type: 'string', description: 'Path to subtitle file (.srt, .vtt) or array of subtitle entry objects' },
+                mode: {
+                    type: 'string',
+                    enum: ['soft', 'hard'],
+                    description: 'soft (default): embed as a selectable subtitle stream, no re-encode. hard: burn subtitle text into video frames.'
+                },
+                style: {
+                    type: 'object',
+                    description: 'Styling for hard mode only (ignored in soft mode). Supported keys: fontSize (number), fontFamily (string), fontColor (hex string), outlineColor (hex string), outlineWidth (number), bold (boolean), italic (boolean), alignment (ASS number: 2=bottom-center), marginV (number), backgroundOpacity (0-1).'
+                }
             },
             required: ['input', 'subtitles']
         }
@@ -417,7 +426,7 @@ export async function handleTool(name: string, args: any): Promise<any> {
 
         let resultPayload: any = { ...res };
         if (Buffer.isBuffer(res.data)) {
-            const outPath = (ops as any).generateTmpFilePath('output');
+            const outPath = generateTmpFilePath('mp4');
             await fs.writeFile(outPath, res.data);
             resultPayload.data = {
                  message: 'Processing succeeded.',
@@ -426,7 +435,7 @@ export async function handleTool(name: string, args: any): Promise<any> {
         } else if (Array.isArray(res.data) && res.data.length > 0 && Buffer.isBuffer(res.data[0])) {
             const outPaths = [];
             for (let i = 0; i < res.data.length; i++) {
-                 const outPath = (ops as any).generateTmpFilePath('output');
+                 const outPath = generateTmpFilePath('jpg');
                  await fs.writeFile(outPath, res.data[i]);
                  outPaths.push(outPath);
             }

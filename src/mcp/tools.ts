@@ -1,6 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as ops from '../index.js';
 import fs from 'node:fs/promises';
+import { generateTmpFilePath } from '../utils/tmp.js';
 
 export const allTools: Tool[] = [
     {
@@ -391,9 +392,27 @@ export async function handleTool(name: string, args: any): Promise<any> {
         } else if (name === 'video_add_transition') {
              inputArg = mArgs.inputs;
              delete secondArg.inputs;
+        } else if (name === 'video_pipeline') {
+             // pipeline(input, steps[]) — secondArg must be the steps array directly,
+             // not the whole options object { steps: [...] }.
+             // Also normalise 'operation' -> 'op' since Claude often emits 'operation'.
+             let rawSteps = mArgs.steps;
+             if (typeof rawSteps === 'string') {
+                 try { rawSteps = JSON.parse(rawSteps); } catch { /* leave as-is */ }
+             }
+             secondArg = Array.isArray(rawSteps)
+                 ? rawSteps.map((s: any) => (s.operation && !s.op ? { ...s, op: s.operation } : s))
+                 : rawSteps;
         } else if (name === 'video_batch') {
+             // batch(inputs[], steps[], options?) — same extraction logic as pipeline
              inputArg = mArgs.inputs;
-             delete secondArg.inputs;
+             let rawSteps = mArgs.steps;
+             if (typeof rawSteps === 'string') {
+                 try { rawSteps = JSON.parse(rawSteps); } catch { /* leave as-is */ }
+             }
+             secondArg = Array.isArray(rawSteps)
+                 ? rawSteps.map((s: any) => (s.operation && !s.op ? { ...s, op: s.operation } : s))
+                 : rawSteps;
         }
 
         const fn = (ops as any)[fnName];
@@ -417,7 +436,7 @@ export async function handleTool(name: string, args: any): Promise<any> {
 
         let resultPayload: any = { ...res };
         if (Buffer.isBuffer(res.data)) {
-            const outPath = (ops as any).generateTmpFilePath('output');
+            const outPath = generateTmpFilePath('mp4');
             await fs.writeFile(outPath, res.data);
             resultPayload.data = {
                  message: 'Processing succeeded.',
@@ -426,7 +445,7 @@ export async function handleTool(name: string, args: any): Promise<any> {
         } else if (Array.isArray(res.data) && res.data.length > 0 && Buffer.isBuffer(res.data[0])) {
             const outPaths = [];
             for (let i = 0; i < res.data.length; i++) {
-                 const outPath = (ops as any).generateTmpFilePath('output');
+                 const outPath = generateTmpFilePath('jpg');
                  await fs.writeFile(outPath, res.data[i]);
                  outPaths.push(outPath);
             }

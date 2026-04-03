@@ -1,6 +1,13 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as ops from '../index.js';
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { generateTmpFilePath } from '../utils/tmp.js';
+
+const OUTPUT_PROP = {
+    type: 'string',
+    description: 'Optional path to save the output file. If omitted, saves to a temp file and returns the path in savedTo.'
+} as const;
 
 export const allTools: Tool[] = [
     {
@@ -12,7 +19,8 @@ export const allTools: Tool[] = [
                 input: { type: 'string', description: 'Path or URL to input video' },
                 start: { type: 'string', description: 'Start time in seconds or HH:MM:SS format' },
                 end: { type: 'string', description: 'End time in seconds or HH:MM:SS format (optional)' },
-                duration: { type: 'number', description: 'Duration to trim in seconds (optional)' }
+                duration: { type: 'number', description: 'Duration to trim in seconds (optional)' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'start']
         }
@@ -25,7 +33,8 @@ export const allTools: Tool[] = [
             properties: {
                 inputs: { type: 'array', items: { type: 'string' }, description: 'Array of input video paths or URLs' },
                 transition: { type: 'object', properties: { type: { type: 'string', enum: ['fade', 'none'] }, duration: { type: 'number' } }, description: 'Optional transition settings' },
-                format: { type: 'string', enum: ['mp4', 'webm'], description: 'Output format' }
+                format: { type: 'string', enum: ['mp4', 'webm'], description: 'Output format' },
+                output: OUTPUT_PROP
             },
             required: ['inputs']
         }
@@ -39,7 +48,8 @@ export const allTools: Tool[] = [
                 input: { type: 'string', description: 'Path or URL to input video' },
                 width: { type: 'number' },
                 height: { type: 'number' },
-                fit: { type: 'string', enum: ['cover', 'contain', 'fill', 'inside', 'outside'] }
+                fit: { type: 'string', enum: ['cover', 'contain', 'fill', 'inside', 'outside'] },
+                output: OUTPUT_PROP
             },
             required: ['input']
         }
@@ -55,7 +65,8 @@ export const allTools: Tool[] = [
                 y: { type: 'number' },
                 width: { type: 'number' },
                 height: { type: 'number' },
-                aspectRatio: { type: 'string', description: 'e.g. "16:9"' }
+                aspectRatio: { type: 'string', description: 'e.g. "16:9"' },
+                output: OUTPUT_PROP
             },
             required: ['input']
         }
@@ -67,7 +78,8 @@ export const allTools: Tool[] = [
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                speed: { type: 'number', description: 'Speed multiplier (e.g. 2.0 for 2x fast, 0.5 for half speed)' }
+                speed: { type: 'number', description: 'Speed multiplier (e.g. 2.0 for 2x fast, 0.5 for half speed)' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'speed']
         }
@@ -82,7 +94,8 @@ export const allTools: Tool[] = [
                 format: { type: 'string', enum: ['mp4', 'webm', 'avi', 'mov', 'gif'] },
                 quality: { type: 'number', description: '0-100 quality scale' },
                 fps: { type: 'number' },
-                width: { type: 'number' }
+                width: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'format']
         }
@@ -120,7 +133,8 @@ export const allTools: Tool[] = [
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                layers: { type: 'array', items: { type: 'object' } }
+                layers: { type: 'array', items: { type: 'object' } },
+                output: OUTPUT_PROP
             },
             required: ['input', 'layers']
         }
@@ -133,7 +147,8 @@ export const allTools: Tool[] = [
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
                 subtitles: { type: 'string', description: 'Path or URL to subtitle file, or array of subtitle objects' },
-                style: { type: 'object' }
+                style: { type: 'object' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'subtitles']
         }
@@ -145,7 +160,8 @@ export const allTools: Tool[] = [
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                layers: { type: 'array', items: { type: 'object' } }
+                layers: { type: 'array', items: { type: 'object' } },
+                output: OUTPUT_PROP
             },
             required: ['input', 'layers']
         }
@@ -160,7 +176,8 @@ export const allTools: Tool[] = [
                 direction: { type: 'string', enum: ['bottom', 'top', 'left', 'right'] },
                 color: { type: 'string' },
                 opacity: { type: 'number' },
-                coverage: { type: 'number' }
+                coverage: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'direction']
         }
@@ -173,7 +190,8 @@ export const allTools: Tool[] = [
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
                 regions: { type: 'array', items: { type: 'object' } },
-                blur: { type: 'number' }
+                blur: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'regions']
         }
@@ -186,7 +204,8 @@ export const allTools: Tool[] = [
             properties: {
                 inputs: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 2 },
                 type: { type: 'string', enum: ['fade', 'slide-left', 'slide-right', 'wipe', 'dissolve'] },
-                duration: { type: 'number' }
+                duration: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['inputs', 'type']
         }
@@ -199,7 +218,8 @@ export const allTools: Tool[] = [
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
                 format: { type: 'string', enum: ['mp3', 'aac', 'wav', 'flac'] },
-                quality: { type: 'number' }
+                quality: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input']
         }
@@ -214,7 +234,8 @@ export const allTools: Tool[] = [
                 audio: { type: 'string', description: 'Path or URL to new audio' },
                 fadeIn: { type: 'number' },
                 fadeOut: { type: 'number' },
-                loop: { type: 'boolean' }
+                loop: { type: 'boolean' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'audio']
         }
@@ -229,7 +250,8 @@ export const allTools: Tool[] = [
                 volume: { type: 'number' },
                 fadeIn: { type: 'number' },
                 fadeOut: { type: 'number' },
-                normalize: { type: 'boolean' }
+                normalize: { type: 'boolean' },
+                output: OUTPUT_PROP
             },
             required: ['input']
         }
@@ -241,7 +263,8 @@ export const allTools: Tool[] = [
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                sections: { type: 'array', items: { type: 'object' } }
+                sections: { type: 'array', items: { type: 'object' } },
+                output: OUTPUT_PROP
             },
             required: ['input', 'sections']
         }
@@ -271,7 +294,8 @@ export const allTools: Tool[] = [
                 contrast: { type: 'number' },
                 saturation: { type: 'number' },
                 hue: { type: 'number' },
-                gamma: { type: 'number' }
+                gamma: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input']
         }
@@ -284,7 +308,8 @@ export const allTools: Tool[] = [
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
                 filter: { type: 'string', enum: ['grayscale', 'sepia', 'vintage', 'blur', 'sharpen', 'vignette'] },
-                intensity: { type: 'number' }
+                intensity: { type: 'number' },
+                output: OUTPUT_PROP
             },
             required: ['input', 'filter']
         }
@@ -325,7 +350,8 @@ export const allTools: Tool[] = [
             type: 'object',
             properties: {
                 input: { type: 'string', description: 'Path or URL to input video' },
-                steps: { type: 'array', items: { type: 'object' } }
+                steps: { type: 'array', items: { type: 'object' } },
+                output: OUTPUT_PROP
             },
             required: ['input', 'steps']
         }
@@ -338,7 +364,8 @@ export const allTools: Tool[] = [
             properties: {
                 inputs: { type: 'array', items: { type: 'string' } },
                 steps: { type: 'array', items: { type: 'object' } },
-                options: { type: 'object' }
+                options: { type: 'object' },
+                output: { type: 'string', description: 'Optional directory path to save output files. Files are named output_0.mp4, output_1.mp4, etc. If omitted, saves to temp files.' }
             },
             required: ['inputs', 'steps']
         }
@@ -382,6 +409,8 @@ export async function handleTool(name: string, args: any): Promise<any> {
         let inputArg = mArgs.input;
         let secondArg: any = { ...mArgs };
         delete secondArg.input;
+        // Remove output from secondArg — it's handled here, not passed to ops functions
+        delete secondArg.output;
         if (Object.keys(secondArg).length === 0) secondArg = undefined;
 
         if (name === 'video_concat') {
@@ -391,9 +420,27 @@ export async function handleTool(name: string, args: any): Promise<any> {
         } else if (name === 'video_add_transition') {
              inputArg = mArgs.inputs;
              delete secondArg.inputs;
+        } else if (name === 'video_pipeline') {
+             // pipeline(input, steps[]) — secondArg must be the steps array directly,
+             // not the whole options object { steps: [...] }.
+             // Also normalise 'operation' -> 'op' since Claude often emits 'operation'.
+             let rawSteps = mArgs.steps;
+             if (typeof rawSteps === 'string') {
+                 try { rawSteps = JSON.parse(rawSteps); } catch { /* leave as-is */ }
+             }
+             secondArg = Array.isArray(rawSteps)
+                 ? rawSteps.map((s: any) => (s.operation && !s.op ? { ...s, op: s.operation } : s))
+                 : rawSteps;
         } else if (name === 'video_batch') {
+             // batch(inputs[], steps[], options?) — same extraction logic as pipeline
              inputArg = mArgs.inputs;
-             delete secondArg.inputs;
+             let rawSteps = mArgs.steps;
+             if (typeof rawSteps === 'string') {
+                 try { rawSteps = JSON.parse(rawSteps); } catch { /* leave as-is */ }
+             }
+             secondArg = Array.isArray(rawSteps)
+                 ? rawSteps.map((s: any) => (s.operation && !s.op ? { ...s, op: s.operation } : s))
+                 : rawSteps;
         }
 
         const fn = (ops as any)[fnName];
@@ -406,29 +453,45 @@ export async function handleTool(name: string, args: any): Promise<any> {
             };
         }
 
-        // If returned data is Buffer or Array of Buffers, we need to save to a path and return path
-        // since MCP doesn't transmit raw binary well in standard implementations (it prefers text or base64, but usually paths are given).
-        // The prompt says "Returns Json" usually but for artifacts, we should return base64 or write to file.
-        // ACTUALLY, MCP format for results is content array. We can return the result JSON directly.
-        // Wait, the specification doesn't dictate how to respond with Buffers via MCP. Wait, image tools usually base64 encode or save.
-        // Let's assume we save to a tmp file or let user provide output path. The prompt does not define an output path in MCP.
-        // Let's save the Buffer to a temporary file and return the path, or return base64 if small. Since it's video, save to temp file and return JSON with path.
-        // Wait, returning JSON string with path is safer for videos.
+        // Resolve output path — use caller-provided path or generate a temp file.
+        // For Buffer[] results (video_batch) the output param is treated as a directory.
+        const requestedOutput = mArgs.output as string | undefined;
 
         let resultPayload: any = { ...res };
         if (Buffer.isBuffer(res.data)) {
-            const outPath = (ops as any).generateTmpFilePath('output');
-            await fs.writeFile(outPath, res.data);
+            let finalPath: string;
+            if (requestedOutput) {
+                // Create parent directories if needed
+                await fs.mkdir(path.dirname(path.resolve(requestedOutput)), { recursive: true });
+                finalPath = requestedOutput;
+            } else {
+                // Derive a sensible extension from the tool name
+                const ext = name === 'video_extract_audio'
+                    ? (mArgs.format || 'mp3')
+                    : 'mp4';
+                finalPath = generateTmpFilePath(ext);
+            }
+            await fs.writeFile(finalPath, res.data);
             resultPayload.data = {
                  message: 'Processing succeeded.',
-                 savedTo: outPath
+                 savedTo: finalPath
             };
         } else if (Array.isArray(res.data) && res.data.length > 0 && Buffer.isBuffer(res.data[0])) {
-            const outPaths = [];
-            for (let i = 0; i < res.data.length; i++) {
-                 const outPath = (ops as any).generateTmpFilePath('output');
-                 await fs.writeFile(outPath, res.data[i]);
-                 outPaths.push(outPath);
+            const outPaths: string[] = [];
+            if (requestedOutput) {
+                // Treat requestedOutput as a directory for multi-file results
+                await fs.mkdir(requestedOutput, { recursive: true });
+                for (let i = 0; i < res.data.length; i++) {
+                    const outPath = path.join(requestedOutput, `output_${i}.mp4`);
+                    await fs.writeFile(outPath, res.data[i]);
+                    outPaths.push(outPath);
+                }
+            } else {
+                for (let i = 0; i < res.data.length; i++) {
+                    const outPath = generateTmpFilePath('jpg');
+                    await fs.writeFile(outPath, res.data[i]);
+                    outPaths.push(outPath);
+                }
             }
             resultPayload.data = {
                  message: 'Processing succeeded.',

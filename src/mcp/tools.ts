@@ -255,7 +255,8 @@ export const allTools: Tool[] = [
                 input: { type: 'string', description: 'Path or URL to input video' },
                 model: { type: 'string', enum: ['tiny', 'base', 'small'] },
                 language: { type: 'string' },
-                format: { type: 'string', enum: ['json', 'srt', 'vtt'] }
+                format: { type: 'string', enum: ['json', 'srt', 'vtt'] },
+                output: { type: 'string', description: 'Optional path to save the transcript file (.srt, .vtt, or .json). If omitted the transcript is returned inline only.' }
             },
             required: ['input']
         }

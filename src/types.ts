@@ -172,6 +172,8 @@ export interface TranscribeOptions {
   model?: 'tiny' | 'base' | 'small';
   language?: string;
   format?: 'json' | 'srt' | 'vtt';
+  /** Optional path to save the transcript file (.srt, .vtt, or .json). */
+  output?: string;
 }
 
 export interface TranscribeResult {
@@ -183,6 +185,8 @@ export interface TranscribeResult {
   }>;
   srt?: string;
   vtt?: string;
+  /** Path where the transcript was saved, if output was specified. */
+  savedTo?: string;
 }
 
 export interface AdjustOptions {

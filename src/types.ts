@@ -104,15 +104,43 @@ export interface SubtitleEntry {
   text: string;
 }
 
+export interface AddSubtitlesStyle {
+  /** Font size in pixels. */
+  fontSize?: number;
+  /** Font family name. */
+  fontFamily?: string;
+  /** Text color as hex, e.g. "#FFFFFF". */
+  fontColor?: string;
+  /** Outline/shadow color as hex, e.g. "#000000". */
+  outlineColor?: string;
+  /** Outline thickness in pixels. */
+  outlineWidth?: number;
+  bold?: boolean;
+  italic?: boolean;
+  /**
+   * ASS alignment value:
+   * 1=bottom-left 2=bottom-center 3=bottom-right
+   * 5=top-left    6=top-center    7=top-right
+   */
+  alignment?: number;
+  /** Vertical margin from edge in pixels. */
+  marginV?: number;
+  /** Semi-transparent background box opacity (0–1). */
+  backgroundOpacity?: number;
+  // Legacy aliases kept for backwards compatibility
+  color?: string;
+  outline?: boolean;
+  position?: 'bottom' | 'top' | 'center';
+}
+
 export interface AddSubtitlesOptions {
   subtitles: string | SubtitleEntry[];
-  style?: {
-    fontSize?: number;
-    color?: string;
-    fontFamily?: string;
-    outline?: boolean;
-    position?: 'bottom' | 'top' | 'center';
-  };
+  /**
+   * "soft" (default) — embed subtitle as a selectable stream, no video re-encode.
+   * "hard" — burn subtitle text into video frames.
+   */
+  mode?: 'soft' | 'hard';
+  style?: AddSubtitlesStyle;
 }
 
 export interface CompositeOptions {
@@ -169,9 +197,18 @@ export interface MuteSectionOptions {
 }
 
 export interface TranscribeOptions {
-  model?: 'tiny' | 'base' | 'small';
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large-v3';
   language?: string;
   format?: 'json' | 'srt' | 'vtt';
+  /**
+   * Optional comma-separated list of proper nouns or domain terms to bias
+   * the Whisper decoder toward (e.g. "MegaMem, GraphRAG, Obsidian, Casey Bjørn").
+   * Implemented via initial prompt injection — no fine-tuning required.
+   * Dramatically improves accuracy for branded/technical vocabulary.
+   */
+  hotwords?: string;
+  /** Optional path to save the transcript file (.srt, .vtt, or .json). */
+  output?: string;
 }
 
 export interface TranscribeResult {
@@ -183,6 +220,8 @@ export interface TranscribeResult {
   }>;
   srt?: string;
   vtt?: string;
+  /** Path where the transcript was saved, if output was specified. */
+  savedTo?: string;
 }
 
 export interface AdjustOptions {

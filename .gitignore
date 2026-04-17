@@ -55,3 +55,6 @@ examples/output-youtube-thumbnail.jpg
 # Project temp files
 tmp/
 temp/
+
+# Roo AI config (contains tokens)
+.roo/
